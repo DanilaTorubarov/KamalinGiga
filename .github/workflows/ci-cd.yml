@@ -50,8 +50,8 @@ jobs:
           ssh ${DEPLOY_USER}@${DEPLOY_HOST} <<EOF
           set -euo pipefail
           cd "$DEPLOY_PATH"
-          git fetch origin master
-          git reset --hard origin/master
+          git fetch origin main
+          git reset --hard origin/main
           docker compose -f docker-compose.yml down
           docker compose -f docker-compose.yml up -d --build
           EOF
