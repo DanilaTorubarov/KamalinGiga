@@ -1,4 +1,57 @@
-name: ci-cd.yml
+name: CI/CD
+
 on:
+  push:
+    branches: ["master"]
+  pull_request:
+    branches: ["master"]
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Build and start containers
+        run: docker compose -f docker-compose.yml up -d --build
+      - name: Run tests
+        run: docker compose -f docker-compose.yml exec backend pytest -v
+      - name: Stop containers
+        if: always()
+        run: docker compose -f docker-compose.yml down
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.ref == 'refs/heads/master'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Start SSH agent and add key
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.DEPLOY_KEY }}
+
+      - name: Add known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.KNOWN_HOSTS }}" >> ~/.ssh/known_hosts
+
+      - name: Deploy to server
+        env:
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+        run: |
+          : "${DEPLOY_USER:?missing DEPLOY_USER}"
+          : "${DEPLOY_HOST:?missing DEPLOY_HOST}"
+          : "${DEPLOY_PATH:?missing DEPLOY_PATH}"
+          ssh ${DEPLOY_USER}@${DEPLOY_HOST} <<EOF
+          set -euo pipefail
+          cd "$DEPLOY_PATH"
+          git fetch origin master
+          git reset --hard origin/master
+          docker compose -f docker-compose.yml down
+          docker compose -f docker-compose.yml up -d --build
+          EOF
