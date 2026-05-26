@@ -6,6 +6,10 @@ services:
     container_name: backend
     ports:
       - "8000:8000"
+    environment:
+      - YANDEX_API_KEY=${YANDEX_API_KEY}
+      - YANDEX_GPT_KEY=${YANDEX_GPT_KEY}
+      - YANDEX_FOLDER_ID=${YANDEX_FOLDER_ID}
     networks:
       - appnet
 
