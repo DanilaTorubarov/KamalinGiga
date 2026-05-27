@@ -1567,9 +1567,14 @@ function renderError(err){
    CARD
    ════════════════════════════════════════════════════════════ */
 function buildCard(p, i){
-  const c = document.createElement('article');
+  const c = document.createElement('a');
   c.className = 'card' + (p.image_url ? '' : ' no-photo');
   c.dataset.id = p.id;
+  c.href = `https://2gis.ru/moscow/firm/${encodeURIComponent(p.id)}`;
+  c.target = '_blank';
+  c.rel = 'noopener';
+  c.style.textDecoration = 'none';
+  c.style.color = 'inherit';
 
   const distance = p.distance_label || (p.distance_m != null ? formatDistance(p.distance_m) : '');
   const openLabel = 'is_open' in p ? (p.is_open ? 'Открыто' : 'Закрыто') : null;
@@ -1646,6 +1651,7 @@ function formatDistance(m){
 }
 
 async function onSaveClick(e, el){
+  e.preventDefault();
   e.stopPropagation();
   const card = el.closest('.card');
   const id = card && card.dataset.id;
