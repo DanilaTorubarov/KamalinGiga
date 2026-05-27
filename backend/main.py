@@ -1,7 +1,10 @@
+import asyncio
 import math
 import os
+import time
+import uuid
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 import httpx
 from dotenv import load_dotenv
@@ -153,15 +156,91 @@ async def api_places(
     return {"total": len(places), "places": places[:limit]}
 
 # ---------------------------------------------------------------------------
-# Чат — заглушка
+# GigaChat
 # ---------------------------------------------------------------------------
+
+GIGACHAT_AUTH_KEY = os.getenv("GIGACHAT_API")
+
+_token: dict[str, Any] = {"access_token": None, "expires_at": 0}
+_token_lock = asyncio.Lock()
+
+GIGACHAT_SYSTEM_PROMPT = (
+    "Ты — дружелюбный ассистент приложения «Развлекись». "
+    "Помогаешь пользователю найти кафе, рестораны, бары и другие заведения рядом. "
+    "Отвечай коротко, по-русски, без лишних формальностей."
+)
+
+
+async def _fetch_token() -> str:
+    async with httpx.AsyncClient(verify=False) as client:
+        r = await client.post(
+            "https://ngw.devices.sberbank.ru:9443/api/v2/oauth",
+            headers={
+                "Content-Type": "application/x-www-form-urlencoded",
+                "Accept": "application/json",
+                "RqUID": str(uuid.uuid4()),
+                "Authorization": f"Basic {GIGACHAT_AUTH_KEY}",
+            },
+            data={"scope": "GIGACHAT_API_PERS"},
+            timeout=10,
+        )
+    r.raise_for_status()
+    data = r.json()
+    _token["access_token"] = data["access_token"]
+    _token["expires_at"] = data["expires_at"]
+    return _token["access_token"]
+
+
+async def get_access_token() -> str:
+    async with _token_lock:
+        now_ms = int(time.time() * 1000)
+        if _token["access_token"] and _token["expires_at"] > now_ms + 60_000:
+            return _token["access_token"]
+        return await _fetch_token()
+
+
+async def gigachat_complete(messages: list[dict]) -> str:
+    for attempt in range(2):
+        token = await get_access_token()
+        async with httpx.AsyncClient(verify=False) as client:
+            r = await client.post(
+                "https://gigachat.devices.sberbank.ru/api/v1/chat/completions",
+                headers={"Authorization": f"Bearer {token}"},
+                json={"model": "GigaChat", "messages": messages},
+                timeout=30,
+            )
+        if r.status_code == 401 and attempt == 0:
+            async with _token_lock:
+                _token["access_token"] = None
+                _token["expires_at"] = 0
+            continue
+        r.raise_for_status()
+        return r.json()["choices"][0]["message"]["content"]
+    raise HTTPException(502, "GigaChat недоступен")
+
+
+# ---------------------------------------------------------------------------
+# Чат
+# ---------------------------------------------------------------------------
+
+class HistoryMessage(BaseModel):
+    role: str
+    content: str
 
 class ChatIn(BaseModel):
     message: str
+    history: list[HistoryMessage] = []
 
 class ChatOut(BaseModel):
     reply: str
 
 @app.post("/api/chat", response_model=ChatOut)
 async def api_chat(body: ChatIn):
-    return ChatOut(reply="Чат пока в разработке, но я уже ищу лучшие места рядом!")
+    messages = [{"role": "system", "content": GIGACHAT_SYSTEM_PROMPT}]
+    for h in body.history:
+        if h.role in ("user", "assistant"):
+            messages.append({"role": h.role, "content": h.content})
+    messages.append({"role": "user", "content": body.message})
+
+    reply = await gigachat_complete(messages)
+    return ChatOut(reply=reply)
