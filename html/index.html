@@ -1144,14 +1144,14 @@
 
         <div class="tabs-row">
           <div class="tabs" id="tabs">
-            <button class="tab on" data-cat="all">Все<span class="count">142</span></button>
-            <button class="tab" data-cat="rest">Рестораны<span class="count">38</span></button>
-            <button class="tab" data-cat="cafe">Кофейни<span class="count">24</span></button>
-            <button class="tab" data-cat="bar">Бары<span class="count">19</span></button>
-            <button class="tab" data-cat="cult">Культура<span class="count">17</span></button>
-            <button class="tab" data-cat="cinema">Кино<span class="count">8</span></button>
-            <button class="tab" data-cat="fun">Развлечения<span class="count">21</span></button>
-            <button class="tab" data-cat="park">Парки<span class="count">15</span></button>
+            <button class="tab on" data-cat="all">Все</button>
+            <button class="tab" data-cat="rest">Рестораны</button>
+            <button class="tab" data-cat="cafe">Кофейни</button>
+            <button class="tab" data-cat="bar">Бары</button>
+            <button class="tab" data-cat="cult">Культура</button>
+            <button class="tab" data-cat="cinema">Кино</button>
+            <button class="tab" data-cat="fun">Развлечения</button>
+            <button class="tab" data-cat="park">Парки</button>
           </div>
 
           <div class="filter-wrap">
@@ -1225,7 +1225,7 @@
 
         <div class="applied-row" id="appliedRow">
           <div class="applied-pills" id="appliedPills"></div>
-          <span class="count-label">Найдено <b id="countNum">142</b> места рядом</span>
+          <span class="count-label">Найдено <b id="countNum">…</b> места рядом</span>
         </div>
       </header>
     </div>
@@ -1514,9 +1514,14 @@ async function fetchAndRender(){
     data = mockListPlaces(params);
   }
 
-  renderGrid(data.places || []);
+  const places = (data.places || []).map(p => ({
+    ...p,
+    category: p.category || p.address || '',
+    image_url: p.image_url || null,
+  }));
+  renderGrid(places);
   if (data.categories) renderCategories(data.categories);
-  document.getElementById('countNum').textContent = data.total != null ? data.total : (data.places || []).length;
+  document.getElementById('countNum').textContent = data.total != null ? data.total : places.length;
   grid.removeAttribute('aria-busy');
 }
 
@@ -1567,7 +1572,7 @@ function buildCard(p, i){
   c.dataset.id = p.id;
 
   const distance = p.distance_label || (p.distance_m != null ? formatDistance(p.distance_m) : '');
-  const openLabel = p.is_open === false ? 'Закрыто' : 'Открыто';
+  const openLabel = 'is_open' in p ? (p.is_open ? 'Открыто' : 'Закрыто') : null;
   const ratingHtml = p.rating != null ? `<span class="rating"><span class="star">★</span>${(+p.rating).toFixed(1)}</span><span class="dot-sep"></span>` : '';
   const priceHtml  = p.price ? `<span class="dot-sep"></span><span class="price"><b>${esc(p.price)}</b></span>` : '';
   const saveBtn = `
@@ -1586,7 +1591,7 @@ function buildCard(p, i){
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="10" r="3"/><path d="M12 2a8 8 0 0 0-8 8c0 6 8 12 8 12s8-6 8-12a8 8 0 0 0-8-8z"/></svg>
           ${esc(distance)}
         </span>
-        <span class="badge-glass">${openLabel}</span>
+        ${openLabel != null ? `<span class="badge-glass">${openLabel}</span>` : ''}
         ${saveBtn}
       </div>
       <div class="card-foot">
@@ -1614,7 +1619,7 @@ function noPhotoMarkup(p, distance, openLabel, saveBtn, ratingHtml, priceHtml){
         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="10" r="3"/><path d="M12 2a8 8 0 0 0-8 8c0 6 8 12 8 12s8-6 8-12a8 8 0 0 0-8-8z"/></svg>
         ${esc(distance)}
       </span>
-      <span class="badge-glass">${openLabel}</span>
+      ${openLabel != null ? `<span class="badge-glass">${openLabel}</span>` : ''}
       ${saveBtn}
     </div>
     <div class="monogram">
