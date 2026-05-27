@@ -12,10 +12,21 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      # --- ИСПРАВЛЕНИЕ: Записываем ENV_DATA в файл .env перед сборкой Docker ---
+      - name: Create .env file for testing
+        env:
+          ENV_DATA: ${{ secrets.ENV_DATA }}
+        run: |
+          printf '%s' "${ENV_DATA}" > .env
+
       - name: Build and start containers
         run: docker compose -f docker-compose.yml up -d --build
+
+      # --- ИСПРАВЛЕНИЕ: Добавлен флаг -T для работы в CI ---
       - name: Run tests
-        run: docker compose -f docker-compose.yml exec backend pytest -v
+        run: docker compose -f docker-compose.yml exec -T backend pytest -v
+
       - name: Stop containers
         if: always()
         run: docker compose -f docker-compose.yml down
