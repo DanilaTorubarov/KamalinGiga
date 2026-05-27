@@ -155,7 +155,7 @@ def _element_to_place(elem: dict, user_lat: float, user_lng: float) -> dict | No
     else:
         return None
 
-    place_id = f"{elem['type']}/{elem['id']}"
+    place_id = f"{elem['type']}:{elem['id']}"
     category_id, category_label = _category_from_tags(tags)
     distance_m = haversine(user_lat, user_lng, place_lat, place_lng)
     dist_label = f"{distance_m} м" if distance_m < 1000 else f"{distance_m / 1000:.1f} км"
