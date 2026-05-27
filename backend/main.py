@@ -66,14 +66,18 @@ async def geocode_address(address: str):
 
 DGIS_API_KEY = os.getenv("DGIS_API_KEY")
 
-async def dgis_search(lat: float, lng: float, query: str, radius: int = 1000):
-    url = "https://catalog.api.2gis.com/3.0/items/geosearch"
+
+async def dgis_search(lat: float, lng: float, query: str, radius: int = 5000):
+    # Конечная точка без geosearch!
+    url = "https://catalog.api.2gis.com/3.0/items"
+
     params = {
         "key": DGIS_API_KEY,
         "q": query,
-        "lat": lat,
-        "lon": lng,
+        "point": f"{lng},{lat}",  # Сначала долгота, потом широта
         "radius": radius,
+        "sort": "distance",
+        "fields": "items.point",  # Запрашиваем координаты у API
     }
 
     async with httpx.AsyncClient() as client:
@@ -87,7 +91,7 @@ async def dgis_search(lat: float, lng: float, query: str, radius: int = 1000):
 def convert_dgis_place(item, user_lat, user_lng):
     point = item.get("point", {})
     lat = point.get("lat")
-    lon = point.get("lon")
+    lon = point.get("lon") # Тут вы берете "lon" — это правильно для 2GIS!
 
     if lat is None or lon is None:
         return None
@@ -99,7 +103,7 @@ def convert_dgis_place(item, user_lat, user_lng):
         "name": item.get("name"),
         "address": item.get("address_name"),
         "lat": lat,
-        "lng": lon,
+        "lng": lon, # И здесь отдаете "lng" клиенту
         "distance_m": dist,
         "distance_label": f"{dist} м" if dist < 1000 else f"{dist/1000:.1f} км",
     }
@@ -135,13 +139,13 @@ async def api_places(
 
     query = CATEGORY_QUERY.get(category, "еда")
     raw_items = await dgis_search(lat, lng, query)
-
     places = []
     for item in raw_items:
         p = convert_dgis_place(item, lat, lng)
+
         if p:
             places.append(p)
-
+    print(places)
     places.sort(key=lambda x: x["distance_m"])
     return {"total": len(places), "places": places[:limit]}
 

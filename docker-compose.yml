@@ -4,6 +4,8 @@ services:
   backend:
     build: ./backend
     container_name: backend
+    env_file:
+      - .env
     ports:
       - "8000:8000"
     # No API keys required — uses Nominatim + Overpass (OpenStreetMap, free)
