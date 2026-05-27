@@ -1,0 +1,57 @@
+### 1. Геокодирование адреса
+POST http://localhost/api/geocode
+Content-Type: application/json
+
+{
+  "address": "Москва, Красная площадь"
+}
+
+###
+
+### 2. Геокодирование другого адреса
+POST http://localhost/api/geocode
+Content-Type: application/json
+
+{
+  "address": "Москва, Тверская 10"
+}
+
+###
+
+### 3. Поиск кафе рядом (lat/lng)
+GET http://localhost/api/places?lat=55.762875&lng=37.608392&category=cafe&limit=10
+
+###55.755312, 37.626007
+
+### 4. Поиск ресторанов рядом (lat/lng)
+GET http://localhost/api/places?lat=55.755312&lng=37.626007&category=rest&limit=10
+
+###
+
+### 5. Поиск баров рядом (lat/lng)
+GET http://localhost/api/places?lat=55.762875&lng=37.608392&category=bar&limit=10
+
+###
+
+### 6. Поиск всех заведений
+GET http://localhost/api/places?lat=55.762875&lng=37.608392&category=all&limit=20
+
+###
+
+### 7. Поиск по адресу (автоматическое геокодирование → 2GIS)
+GET http://localhost/api/places?address=Москва,+Тверская+10&category=cafe&limit=10
+
+###
+
+### 8. Развлечения
+GET http://localhost/api/places?lat=55.762875&lng=37.608392&category=fun&limit=10
+
+###
+
+### 9. Чат — заглушка
+POST http://localhost/api/chat
+Content-Type: application/json
+
+{
+  "message": "Где поужинать рядом?"
+}
