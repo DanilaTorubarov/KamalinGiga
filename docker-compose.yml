@@ -8,7 +8,7 @@ services:
       - .env
     ports:
       - "8000:8000"
-    # No API keys required — uses Nominatim + Overpass (OpenStreetMap, free)
+    env_file: .env
     networks:
       - appnet
 
