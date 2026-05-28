@@ -159,7 +159,21 @@ async def api_places(
 # GigaChat
 # ---------------------------------------------------------------------------
 
-GIGACHAT_AUTH_KEY = os.getenv("GIGACHAT_API")
+def _normalize_auth_key(raw: str | None) -> str | None:
+    if not raw:
+        return None
+    key = raw.strip()
+    # docker-compose env_file может оставить кавычки вокруг значения
+    if len(key) >= 2 and key[0] == key[-1] and key[0] in ("'", '"'):
+        key = key[1:-1].strip()
+    # на случай если в .env уже записали "Basic xxxxx"
+    if key.lower().startswith("basic "):
+        key = key[6:].strip()
+    return key or None
+
+
+GIGACHAT_AUTH_KEY = _normalize_auth_key(os.getenv("GIGACHAT_API"))
+GIGACHAT_SCOPE = os.getenv("GIGACHAT_SCOPE", "GIGACHAT_API_PERS")
 
 _token: dict[str, Any] = {"access_token": None, "expires_at": 0}
 _token_lock = asyncio.Lock()
@@ -199,6 +213,8 @@ def build_places_context(ctx: "ChatContext | None") -> str | None:
 
 
 async def _fetch_token() -> str:
+    if not GIGACHAT_AUTH_KEY:
+        raise HTTPException(500, "GIGACHAT_API не задан в окружении")
     async with httpx.AsyncClient(verify=False) as client:
         r = await client.post(
             "https://ngw.devices.sberbank.ru:9443/api/v2/oauth",
@@ -208,10 +224,17 @@ async def _fetch_token() -> str:
                 "RqUID": str(uuid.uuid4()),
                 "Authorization": f"Basic {GIGACHAT_AUTH_KEY}",
             },
-            data={"scope": "GIGACHAT_API_PERS"},
+            data={"scope": GIGACHAT_SCOPE},
             timeout=10,
         )
-    r.raise_for_status()
+    if r.status_code == 401:
+        raise HTTPException(
+            502,
+            "GigaChat отклонил ключ авторизации (401). Проверьте значение GIGACHAT_API "
+            f"и scope (сейчас {GIGACHAT_SCOPE}).",
+        )
+    if r.status_code != 200:
+        raise HTTPException(502, f"Ошибка авторизации GigaChat: {r.status_code}")
     data = r.json()
     _token["access_token"] = data["access_token"]
     _token["expires_at"] = data["expires_at"]
