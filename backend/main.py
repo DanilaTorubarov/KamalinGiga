@@ -166,9 +166,36 @@ _token_lock = asyncio.Lock()
 
 GIGACHAT_SYSTEM_PROMPT = (
     "Ты — дружелюбный ассистент приложения «Развлекись». "
-    "Помогаешь пользователю найти кафе, рестораны, бары и другие заведения рядом. "
+    "Твоя цель — помочь пользователю выбрать, куда сходить: кафе, ресторан, бар, "
+    "парк или другое место для досуга рядом с ним. "
+    "Опирайся на список найденных рядом заведений, который тебе передан ниже — "
+    "рекомендуй конкретные места из этого списка, учитывай расстояние и пожелания "
+    "пользователя (бюджет, компания, настроение). Если в списке нет подходящего, "
+    "честно скажи об этом. "
     "Отвечай коротко, по-русски, без лишних формальностей."
 )
+
+
+def build_places_context(ctx: "ChatContext | None") -> str | None:
+    if ctx is None:
+        return None
+    lines: list[str] = []
+    if ctx.address:
+        lines.append(f"Пользователь ищет рядом с: {ctx.address}.")
+    if ctx.places:
+        lines.append("Найденные рядом заведения:")
+        for i, p in enumerate(ctx.places, 1):
+            parts = [p.name or "без названия"]
+            if p.category:
+                parts.append(p.category)
+            if p.address:
+                parts.append(p.address)
+            if p.distance_label:
+                parts.append(p.distance_label)
+            lines.append(f"{i}. " + " — ".join(parts))
+    else:
+        lines.append("Рядом пока ничего не найдено.")
+    return "\n".join(lines) if lines else None
 
 
 async def _fetch_token() -> str:
@@ -227,9 +254,20 @@ class HistoryMessage(BaseModel):
     role: str
     content: str
 
+class ChatPlace(BaseModel):
+    name: str | None = None
+    address: str | None = None
+    category: str | None = None
+    distance_label: str | None = None
+
+class ChatContext(BaseModel):
+    address: str | None = None
+    places: list[ChatPlace] = []
+
 class ChatIn(BaseModel):
     message: str
     history: list[HistoryMessage] = []
+    context: ChatContext | None = None
 
 class ChatOut(BaseModel):
     reply: str
@@ -237,6 +275,11 @@ class ChatOut(BaseModel):
 @app.post("/api/chat", response_model=ChatOut)
 async def api_chat(body: ChatIn):
     messages = [{"role": "system", "content": GIGACHAT_SYSTEM_PROMPT}]
+
+    places_context = build_places_context(body.context)
+    if places_context:
+        messages.append({"role": "system", "content": places_context})
+
     for h in body.history:
         if h.role in ("user", "assistant"):
             messages.append({"role": h.role, "content": h.content})

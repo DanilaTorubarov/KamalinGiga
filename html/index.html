@@ -1420,6 +1420,7 @@ const state = {
   category: 'all',
   sort: 'near',
   filters: [],
+  places: [],
 };
 let inFlight = null;   // AbortController for outstanding /places request
 
@@ -1519,6 +1520,7 @@ async function fetchAndRender(){
     category: p.category || p.address || '',
     image_url: p.image_url || null,
   }));
+  state.places = places;
   renderGrid(places);
   if (data.categories) renderCategories(data.categories);
   document.getElementById('countNum').textContent = data.total != null ? data.total : places.length;
@@ -1827,6 +1829,12 @@ async function sendAI(){
       category: state.category,
       sort: state.sort,
       filters: state.filters,
+      places: state.places.map(p => ({
+        name: p.name,
+        address: p.address,
+        category: p.category,
+        distance_label: p.distance_label,
+      })),
     },
   };
 
