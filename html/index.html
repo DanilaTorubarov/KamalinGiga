@@ -1314,7 +1314,6 @@ try{
    point at a non-default host (e.g. "http://localhost:8000/api").
    ════════════════════════════════════════════════════════════ */
 const API_BASE = window.RAZVLEKIS_API_BASE || '/api';
-const USE_MOCK_FALLBACK = true;   // fall back to mock data on network failure (handy for local design work)
 
 const api = {
   // POST /api/geocode    body: { address }
@@ -1367,47 +1366,6 @@ function buildQs(o){
     }
   }
   return parts.length ? '?' + parts.join('&') : '';
-}
-
-/* ─── Mock fallback (used if the backend is unreachable) ─── */
-const MOCK_PLACES = [
-  { id:'p1', name:'Ресторан «Белуга»',         category:'Ресторан',    category_id:'rest',   rating:4.8, price:'₽₽₽₽', distance_m:420,  distance_label:'420 м',  image_url:'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=900&q=80', is_open:true,  saved:false, tags:['terrace'] },
-  { id:'p2', name:'Surf Coffee на Малой Бронной', category:'Кофейня',   category_id:'cafe',   rating:4.6, price:'₽₽',   distance_m:180,  distance_label:'180 м',  image_url:'https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=900&q=80', is_open:true,  saved:true,  tags:['wifi','pet'] },
-  { id:'p3', name:'Театр «Современник»',        category:'Театр',       category_id:'cult',   rating:4.9, price:'₽₽₽',  distance_m:1200, distance_label:'1.2 км', image_url:'https://images.unsplash.com/photo-1503095396549-807759245b35?w=900&q=80', is_open:false, saved:false, tags:[] },
-  { id:'p4', name:'Garage Museum',              category:'Галерея',     category_id:'cult',   rating:4.7, price:'₽₽',   distance_m:2400, distance_label:'2.4 км', image_url:'https://images.unsplash.com/photo-1577720580479-7d839d829c73?w=900&q=80', is_open:true,  saved:false, tags:['wifi'] },
-  { id:'p5', name:'Escape Room «Матрица»',      category:'Развлечения', category_id:'fun',    rating:4.7, price:'₽₽₽',  distance_m:860,  distance_label:'860 м',  image_url:'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=900&q=80', is_open:true,  saved:false, tags:[] },
-  { id:'p6', name:'Сад «Эрмитаж»',              category:'Парк',        category_id:'park',   rating:4.5, price:'Free', distance_m:350,  distance_label:'350 м',  image_url:'https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?w=900&q=80', is_open:true,  saved:false, tags:['pet','terrace'] },
-  { id:'p7', name:'Винотека «Северянин»',       category:'Бар · вино',  category_id:'bar',    rating:4.6, price:'₽₽₽',  distance_m:520,  distance_label:'520 м',  image_url:null,                                                                                            is_open:true,  saved:false, tags:['terrace'] },
-  { id:'p8', name:'Бар «Нора»',                  category:'Бар',         category_id:'bar',    rating:4.7, price:'₽₽₽',  distance_m:640,  distance_label:'640 м',  image_url:'https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=900&q=80', is_open:true,  saved:false, tags:['wifi'] },
-  { id:'p9', name:'Jazz Club «Blue Note»',       category:'Музыка',      category_id:'fun',    rating:4.8, price:'₽₽₽',  distance_m:1800, distance_label:'1.8 км', image_url:'https://images.unsplash.com/photo-1415201364774-f6f0bb35f28f?w=900&q=80', is_open:true,  saved:false, tags:[] },
-];
-const MOCK_CATEGORIES = [
-  { id:'all',    label:'Все',          count: 142 },
-  { id:'rest',   label:'Рестораны',    count: 38  },
-  { id:'cafe',   label:'Кофейни',      count: 24  },
-  { id:'bar',    label:'Бары',         count: 19  },
-  { id:'cult',   label:'Культура',     count: 17  },
-  { id:'cinema', label:'Кино',         count: 8   },
-  { id:'fun',    label:'Развлечения',  count: 21  },
-  { id:'park',   label:'Парки',        count: 15  },
-];
-function mockListPlaces(params){
-  let p = MOCK_PLACES.slice();
-  if (params.category && params.category !== 'all') p = p.filter(x => x.category_id === params.category);
-  if (params.q)  p = p.filter(x => x.name.toLowerCase().includes(params.q.toLowerCase()));
-  if (params.filters && params.filters.length){
-    const f = new Set(params.filters);
-    if (f.has('open'))    p = p.filter(x => x.is_open);
-    if (f.has('walk'))    p = p.filter(x => x.distance_m <= 1000);
-    if (f.has('terrace')) p = p.filter(x => x.tags.includes('terrace'));
-    if (f.has('wifi'))    p = p.filter(x => x.tags.includes('wifi'));
-    if (f.has('pet'))     p = p.filter(x => x.tags.includes('pet'));
-    if (f.has('budget'))  p = p.filter(x => x.price === 'Free' || x.price === '₽' || x.price === '₽₽');
-  }
-  if (params.sort === 'rating') p.sort((a,b)=> b.rating - a.rating);
-  else if (params.sort === 'price') p.sort((a,b)=> a.price.length - b.price.length);
-  else p.sort((a,b)=> a.distance_m - b.distance_m);   // 'near' (default)
-  return { places: p, total: p.length, categories: MOCK_CATEGORIES };
 }
 
 /* ════════════════════════════════════════════════════════════
@@ -1511,8 +1469,10 @@ async function fetchAndRender(){
     data = await api.listPlaces(params);
   } catch (err){
     console.warn('[/places] failed', err);
-    if (!USE_MOCK_FALLBACK) { renderError(err); return; }
-    data = mockListPlaces(params);
+    state.places = [];
+    renderError(err);
+    grid.removeAttribute('aria-busy');
+    return;
   }
 
   const places = (data.places || []).map(p => ({
@@ -1793,12 +1753,6 @@ requestAnimationFrame(syncBrandOffset);
    AI
    ════════════════════════════════════════════════════════════ */
 const aiHistory = [];   // [{ role: 'user'|'assistant', content: '...' }, ...]
-const aiMockReplies = [
-  'Под ужин вдвоём в районе центра — попробуйте «Белугу» или «Северянин». Атмосферно и не шумно.',
-  'Для тихого вечера: Jazz Club «Blue Note» (1.8 км) или Garage Museum, если хочется выставку перед ужином.',
-  'Соберу маршрут: 19:00 — кофейня Surf, 20:30 — ужин «Белуга», 22:30 — бар «Нора». Подтвердить?',
-  'Если бюджет до 2 000 ₽ на двоих — лучше Surf Coffee или Сад «Эрмитаж» с фудкортом.',
-];
 
 function toggleAI(){
   document.getElementById('aiPanel').classList.toggle('on');
@@ -1844,9 +1798,8 @@ async function sendAI(){
     reply = data && data.reply ? data.reply : '…';
   } catch (err){
     console.warn('[/chat] failed', err);
-    if (!USE_MOCK_FALLBACK){ b.textContent = 'Сервис недоступен. Попробуйте позже.'; return; }
-    reply = aiMockReplies[Math.floor(Math.random() * aiMockReplies.length)];
-    await new Promise(r => setTimeout(r, 600));   // small delay to feel natural
+    b.textContent = 'Не удалось получить ответ от ассистента. ' + ((err && err.message) || 'Попробуйте позже.');
+    return;
   }
 
   b.textContent = reply;
