@@ -5,14 +5,13 @@ import time
 import uuid
 from pathlib import Path
 from typing import Any, Literal
-
 import httpx
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-# .env лежит в корне проекта (на уровень выше backend/)
+
 load_dotenv(Path(__file__).parent.parent / ".env")
 
 app = FastAPI(title="Places API")
