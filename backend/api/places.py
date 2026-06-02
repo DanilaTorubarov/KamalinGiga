@@ -1,16 +1,23 @@
 from fastapi import APIRouter, HTTPException, Query
 from services.geocode_service import geocode_address
-from services.places_service import convert_dgis_place
-from clients.dgis_api import dgis_search
+from services.places_service import convert_google_place
+from clients.places import google_nearby_search
 from utils.categories import CATEGORY_QUERY
 
 router = APIRouter(prefix="/api")
+
+
+def _validate_coords(lat: float, lng: float) -> None:
+    if not (-90 <= lat <= 90) or not (-180 <= lng <= 180):
+        raise HTTPException(422, "Некорректные координаты")
+
 
 @router.get("/places")
 async def api_places(lat: float | None = None,
                      lng: float | None = None,
                      address: str | None = None,
                      category: str = "all",
+                     radius: int = 5000,
                      limit: int = Query(50, ge=1, le=100)):
 
     if lat is None or lng is None:
@@ -18,10 +25,12 @@ async def api_places(lat: float | None = None,
             raise HTTPException(422, "Нужен lat+lng или address")
         lat, lng = await geocode_address(address)
 
-    query = CATEGORY_QUERY.get(category, "еда")
-    raw_items = await dgis_search(lat, lng, query)
+    _validate_coords(lat, lng)
 
-    places = [p for item in raw_items if (p := convert_dgis_place(item, lat, lng))]
+    keyword = CATEGORY_QUERY.get(category, "food")
+    raw_items = await google_nearby_search(lat, lng, keyword, radius=radius)
+
+    places = [p for item in raw_items if (p := convert_google_place(item, lat, lng))]
     places.sort(key=lambda x: x["distance_m"])
 
     return {"total": len(places), "places": places[:limit]}

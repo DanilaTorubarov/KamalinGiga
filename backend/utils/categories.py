@@ -1,10 +1,10 @@
 CATEGORY_QUERY = {
-    "all":    "еда",
-    "rest":   "ресторан",
-    "cafe":   "кафе",
-    "bar":    "бар",
-    "cult":   "музей театр галерея",
-    "cinema": "кинотеатр",
-    "fun":    "развлечения",
-    "park":   "парк сад",
+    "all": "food",
+    "rest": "restaurant",
+    "cafe": "cafe",
+    "bar": "bar",
+    "cult": "museum theater gallery",
+    "cinema": "movie theater",
+    "fun": "entertainment",
+    "park": "park",
 }
