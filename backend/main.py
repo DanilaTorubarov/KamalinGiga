@@ -1,3 +1,4 @@
+import uvicorn
 from fastapi import FastAPI
 from core.cors import setup_cors
 from api import geocode, places, chat
@@ -9,3 +10,7 @@ setup_cors(app)
 app.include_router(geocode.router)
 app.include_router(places.router)
 app.include_router(chat.router)
+
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8000)

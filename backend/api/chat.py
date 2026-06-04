@@ -6,11 +6,7 @@ router = APIRouter(prefix="/api")
 
 @router.post("/chat", response_model=ChatOut)
 async def api_chat(body: ChatIn):
-    messages = [{"role": "system", "content": "...PROMPT..."}]
-
-    ctx = build_places_context(body.context)
-    if ctx:
-        messages.append({"role": "system", "content": ctx})
+    messages = []
 
     for h in body.history:
         if h.role in ("user", "assistant"):
@@ -18,5 +14,7 @@ async def api_chat(body: ChatIn):
 
     messages.append({"role": "user", "content": body.message})
 
-    reply = await gigachat_complete(messages)
+    ctx = build_places_context(body.context)
+    reply = await gigachat_complete(messages, ctx)
+    return ChatOut(reply=reply)
     return ChatOut(reply=reply)
