@@ -1,10 +1,20 @@
+from pathlib import Path
+
 from fastapi import HTTPException
 
 from clients.gigachat_client import gigachat_request
+from models.chat import ChatContext
+
+SYSTEM_PROMPT_FILE = Path(__file__).parent.parent / "prompts" / "system.md"
+
+def _load_system_prompt() -> str:
+    if SYSTEM_PROMPT_FILE.exists():
+        return SYSTEM_PROMPT_FILE.read_text(encoding="utf-8").strip()
+    return ""
 
 
-def build_places_context(context):
-    if not context:
+def build_places_context(context: ChatContext | None) -> str:
+    if not context or type(context) != ChatContext:
         return ""
 
     lines = []
@@ -30,7 +40,32 @@ def build_places_context(context):
     return "\n".join(lines)
 
 
-async def gigachat_complete(messages):
+def _ensure_alternating_roles(messages):
+    """GigaChat requires alternating user/assistant roles.
+    Merge consecutive same-role messages into one."""
+    if not messages:
+        return messages
+    merged = [messages[0]]
+    for msg in messages[1:]:
+        if msg["role"] == merged[-1]["role"]:
+            merged[-1]["content"] += "\n" + msg["content"]
+        else:
+            merged.append(msg)
+    return merged
+
+
+async def gigachat_complete(messages, places_context: str = ""):
+    system_prompt = _load_system_prompt()
+
+    system_content = system_prompt
+    if places_context:
+        system_content += "\n\n" + places_context
+
+    if system_content:
+        messages = [{"role": "system", "content": system_content}] + messages
+
+    messages = _ensure_alternating_roles(messages)
+    print(messages)
     data = await gigachat_request(messages)
 
     reply = data.get("reply")
@@ -44,4 +79,3 @@ async def gigachat_complete(messages):
         raise HTTPException(502, "Unexpected GigaChat response")
 
     return reply
-
