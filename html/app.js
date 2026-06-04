@@ -345,7 +345,7 @@ function buildCard(p, i){
   const c = document.createElement('a');
   c.className = 'card'+(p.image_url?'':' no-photo');
   c.dataset.id = p.id;
-  c.href = `https://www.google.com/maps/place/?q=place_id:${encodeURIComponent(p.id)}`;
+  c.href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.name)}&query_place_id=${encodeURIComponent(p.id)}`;
   c.target = '_blank';
   c.rel = 'noopener';
   c.style.textDecoration = 'none';
