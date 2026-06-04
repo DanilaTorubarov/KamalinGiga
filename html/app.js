@@ -26,6 +26,7 @@ const api = {
   listPlaces:(params)         => apiFetch('/places' + buildQs(params)),
   toggleSave:(placeId, save)  => apiFetch(`/places/${encodeURIComponent(placeId)}/save`, { method: save ? 'POST' : 'DELETE' }),
   chat:     (payload)         => apiFetch('/chat', { method:'POST', body: payload }),
+  suggest:  (q, lat, lng)    => apiFetch('/suggestions' + buildQs({ q, lat, lng })),
 };
 
 async function apiFetch(path, { method='GET', body }={}){
@@ -137,6 +138,74 @@ inlineSearch.addEventListener('keydown', async e => {
     } catch (err){ console.warn('[geocode] inline failed', err); }
     fetchAndRender();
   }
+});
+
+/* ════════════════════════════════════════════════════════════
+   AUTOCOMPLETE
+   ════════════════════════════════════════════════════════════ */
+let acTimer = null;
+let acAbort = null;
+
+function setupAC(input, dropId, onSelect){
+  const drop = document.getElementById(dropId);
+  input.addEventListener('input', ()=>{
+    const q = input.value.trim();
+    clearTimeout(acTimer);
+    if (q.length < 2){ drop.classList.remove('on'); drop.innerHTML=''; return; }
+    acTimer = setTimeout(async ()=>{
+      if (acAbort) acAbort.abort();
+      acAbort = new AbortController();
+      try {
+        const items = await api.suggest(q, state.lat, state.lng);
+        if (!Array.isArray(items) || !items.length){ drop.classList.remove('on'); drop.innerHTML=''; return; }
+        drop.innerHTML = '';
+        items.forEach(text => {
+          const el = document.createElement('div');
+          el.className = 'ac-item';
+          el.textContent = text;
+          el.addEventListener('mousedown', e => {
+            e.preventDefault();
+            input.value = text;
+            drop.classList.remove('on'); drop.innerHTML='';
+            onSelect(text);
+          });
+          drop.appendChild(el);
+        });
+        drop.classList.add('on');
+      } catch(e){ if(e.name!=='AbortError') console.warn('[suggest]', e); }
+    }, 280);
+  });
+
+  input.addEventListener('blur', ()=>{ drop.classList.remove('on'); drop.innerHTML=''; });
+
+  input.addEventListener('keydown', e => {
+    if (!drop.classList.contains('on')) return;
+    const items = drop.querySelectorAll('.ac-item');
+    let idx = [...items].findIndex(x => x.classList.contains('ac-active'));
+    if (e.key==='ArrowDown'){ e.preventDefault(); idx = (idx+1)%items.length; highlightAC(items, idx); }
+    else if (e.key==='ArrowUp'){ e.preventDefault(); idx = idx<=0 ? items.length-1 : idx-1; highlightAC(items, idx); }
+    else if (e.key==='Enter' && idx>=0){ e.preventDefault(); items[idx].dispatchEvent(new MouseEvent('mousedown')); }
+    else if (e.key==='Escape'){ drop.classList.remove('on'); drop.innerHTML=''; }
+  });
+}
+
+function highlightAC(items, idx){
+  items.forEach(x => x.classList.remove('ac-active'));
+  items[idx].classList.add('ac-active');
+  items[idx].scrollIntoView({ block:'nearest' });
+}
+
+setupAC(mainSearch, 'acMain', text => doSearch(text));
+setupAC(inlineSearch, 'acInline', async text => {
+  state.address = text;
+  try {
+    const g = await api.geocode(text);
+    if (g && typeof g.lat==='number' && typeof g.lng==='number'){
+      state.lat = g.lat; state.lng = g.lng;
+      if (g.label) state.address = g.label;
+    }
+  } catch(err){ console.warn('[geocode] inline ac failed', err); }
+  fetchAndRender();
 });
 
 /* ════════════════════════════════════════════════════════════

@@ -3,5 +3,6 @@
     "allow": [
       "Bash(pip install *)"
     ]
-  }
+  },
+  "$version": 4
 }
