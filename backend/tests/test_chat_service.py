@@ -1,6 +1,6 @@
 from models.places import ChatPlace
 from models.chat import ChatContext
-from services.chat_service import build_places_context
+from services.chat_service import build_places_context, _ensure_alternating_roles
 
 
 def test_build_context_none():
@@ -60,3 +60,64 @@ def test_build_context_place_all_fields_none():
     )
     result = build_places_context(ctx)
     assert result.strip() == "Places:"
+
+
+# ---------------------------------------------------------------------------
+# _ensure_alternating_roles
+# ---------------------------------------------------------------------------
+
+
+def test_ensure_empty():
+    assert _ensure_alternating_roles([]) == []
+
+
+def test_ensure_single_message():
+    msgs = [{"role": "user", "content": "hello"}]
+    assert _ensure_alternating_roles(msgs) == msgs
+
+
+def test_ensure_already_alternating():
+    msgs = [
+        {"role": "user", "content": "hi"},
+        {"role": "assistant", "content": "hello"},
+        {"role": "user", "content": "how are you"},
+    ]
+    expected = msgs[:]
+    assert _ensure_alternating_roles(msgs) == expected
+
+
+def test_ensure_consecutive_user():
+    msgs = [
+        {"role": "user", "content": "hi"},
+        {"role": "user", "content": "hello"},
+        {"role": "assistant", "content": "hey"},
+    ]
+    result = _ensure_alternating_roles(msgs)
+    assert len(result) == 2
+    assert result[0]["role"] == "user"
+    assert result[0]["content"] == "hi\nhello"
+    assert result[1]["role"] == "assistant"
+
+
+def test_ensure_consecutive_assistant():
+    msgs = [
+        {"role": "user", "content": "hi"},
+        {"role": "assistant", "content": "hello"},
+        {"role": "assistant", "content": "anything else?"},
+    ]
+    result = _ensure_alternating_roles(msgs)
+    assert len(result) == 2
+    assert result[0]["role"] == "user"
+    assert result[1]["role"] == "assistant"
+    assert result[1]["content"] == "hello\nanything else?"
+
+
+def test_ensure_all_same_role():
+    msgs = [
+        {"role": "user", "content": "a"},
+        {"role": "user", "content": "b"},
+        {"role": "user", "content": "c"},
+    ]
+    result = _ensure_alternating_roles(msgs)
+    assert len(result) == 1
+    assert result[0]["content"] == "a\nb\nc"
