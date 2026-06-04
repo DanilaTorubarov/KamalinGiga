@@ -223,3 +223,6 @@ __marimo__/
 
 # QWEN
 QWEN.md
+
+# SSL / Let's Encrypt (сертификаты — только на сервере)
+certbot/conf/

@@ -242,7 +242,7 @@ function requestGeo(e, source){
     },
     err => {
       btn.classList.remove('locating');
-      const msg = err.code===1 ? 'Геолокация отключена в настройках браузера' : 'Не удалось определить местоположение';
+      const msg = err.code===1 ? 'Геолокация недоступна — сайт должен работать по HTTPS. Попробуйте открыть страницу через https://physgraph.tech' : 'Не удалось определить местоположение';
       alert(msg);
     },
     { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }

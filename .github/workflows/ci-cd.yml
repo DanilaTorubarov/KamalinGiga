@@ -73,6 +73,11 @@ jobs:
           cd "${DEPLOY_PATH}"
           git fetch origin main
           git reset --hard origin/main
-          docker compose -f docker-compose.yml down
-          docker compose -f docker-compose.yml up -d --build
+          # Если сертификата нет — запускаем setup-ssl.sh
+          if [ ! -f certbot/conf/live/physgraph.tech/fullchain.pem ]; then
+            bash scripts/setup-ssl.sh
+          else
+            docker compose -f docker-compose.prod.yml down
+            docker compose -f docker-compose.prod.yml up -d --build
+          fi
           EOF
