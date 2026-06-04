@@ -246,9 +246,10 @@ function buildCard(p, i){
   const openLabel = 'is_open' in p ? (p.is_open ? 'Открыто' : 'Закрыто') : null;
   const ratingHtml = p.rating!=null ? `<span class="rating"><span class="star">★</span>${(+p.rating).toFixed(1)}</span><span class="dot-sep"></span>` : '';
   const priceHtml  = p.price ? `<span class="dot-sep"></span><span class="price"><b>${esc(p.price)}</b></span>` : '';
+  const isSaved = p.saved || isPlaceSaved(p.id);
   const saveBtn = `
-    <button class="card-save${p.saved?' saved':''}" aria-label="Сохранить" onclick="onSaveClick(event,this)">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="${p.saved?'currentColor':'none'}" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <button class="card-save${isSaved?' saved':''}" aria-label="Сохранить" onclick="onSaveClick(event,this)">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="${isSaved?'currentColor':'none'}" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
         <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
       </svg>
     </button>`;
@@ -311,6 +312,32 @@ window.makeNoPhoto = (name)=> `<div class="card-bg"></div><div class="monogram">
 function esc(s){ return String(s??'').replace(/[&<>"']/g, ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch])); }
 function formatDistance(m){ if(m==null) return ''; return m<1000 ? `${Math.round(m)} м` : `${(m/1000).toFixed(1)} км`; }
 
+/* ── Cookie helpers for saved places ── */
+const SAVED_COOKIE = 'razvlekis_saved';
+
+function getSavedIds(){
+  try {
+    const match = document.cookie.match(new RegExp('(?:^|;\\s*)' + SAVED_COOKIE + '=([^;]*)'));
+    if (match) return JSON.parse(decodeURIComponent(match[1]));
+  } catch(e){}
+  return [];
+}
+
+function setSavedIds(ids){
+  const expires = new Date(Date.now() + 365*24*60*60*1000).toUTCString();
+  document.cookie = SAVED_COOKIE + '=' + encodeURIComponent(JSON.stringify(ids)) +
+    '; expires=' + expires + '; path=/; SameSite=Lax';
+}
+
+function isPlaceSaved(id){ return getSavedIds().includes(id); }
+
+function toggleSavedId(id, save){
+  let ids = getSavedIds();
+  if (save) { if (!ids.includes(id)) ids.push(id); }
+  else      { ids = ids.filter(x => x !== id); }
+  setSavedIds(ids);
+}
+
 async function onSaveClick(e, el){
   e.preventDefault(); e.stopPropagation();
   const card = el.closest('.card');
@@ -319,12 +346,9 @@ async function onSaveClick(e, el){
   const willSave = !el.classList.contains('saved');
   el.classList.toggle('saved', willSave);
   el.querySelector('svg').setAttribute('fill', willSave?'currentColor':'none');
+  toggleSavedId(id, willSave);
   try { await api.toggleSave(id, willSave); }
-  catch (err){
-    console.warn('[/places/{id}/save] failed', err);
-    el.classList.toggle('saved', !willSave);
-    el.querySelector('svg').setAttribute('fill', !willSave?'currentColor':'none');
-  }
+  catch (err){ console.warn('[/places/{id}/save] API failed, but cookie saved', err); }
 }
 
 /* ════════════════════════════════════════════════════════════
