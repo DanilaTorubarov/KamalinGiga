@@ -429,6 +429,13 @@ const aiHistory = [];
 function toggleAI(){ document.getElementById('aiPanel').classList.toggle('on'); }
 function quickAsk(b){ document.getElementById('aiInput').value=b.textContent; sendAI(); }
 
+function mdToHtml(s){
+  s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  s = s.replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<em>$1</em>');
+  s = s.replace(/\n{2,}/g, '\n');
+  return s;
+}
+
 async function sendAI(){
   const inp = document.getElementById('aiInput');
   const q = inp.value.trim();
@@ -465,7 +472,7 @@ async function sendAI(){
     return;
   }
 
-  b.textContent = reply;
+  b.innerHTML = mdToHtml(reply);
   aiHistory.push({ role:'assistant', content:reply });
   m.scrollTop = m.scrollHeight;
 }

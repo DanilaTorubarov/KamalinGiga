@@ -17,4 +17,3 @@ async def api_chat(body: ChatIn):
     ctx = build_places_context(body.context)
     reply = await gigachat_complete(messages, ctx)
     return ChatOut(reply=reply)
-    return ChatOut(reply=reply)
