@@ -269,6 +269,26 @@ body{
 }
 :root[data-theme="dark"] .kbd{ background: rgba(255,255,255,0.04); }
 
+.geo-btn{
+  margin-right: 10px; flex-shrink:0;
+  width: 36px; height: 36px;
+  border-radius: var(--r-pill);
+  background: rgba(20,16,10,0.04);
+  border: 0.5px solid var(--hairline);
+  color: var(--ink-3);
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer;
+  transition: background .15s, color .15s, transform .15s var(--ease-out);
+}
+:root[data-theme="dark"] .geo-btn{ background: rgba(255,255,255,0.05); }
+.geo-btn:hover{ color: var(--tint); background: var(--tint-tr); transform: scale(1.06); }
+.geo-btn.locating{ color: var(--tint); animation: geo-spin 1.2s linear infinite; }
+@keyframes geo-spin{ to{ transform: rotate(360deg); } }
+.geo-btn.geo-btn-sm{
+  margin-right: 6px;
+  width: 30px; height: 30px;
+}
+
 .hint{
   margin-top: 4px;
   font-size: 12px;

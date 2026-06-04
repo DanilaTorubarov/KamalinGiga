@@ -209,6 +209,47 @@ setupAC(inlineSearch, 'acInline', async text => {
 });
 
 /* ════════════════════════════════════════════════════════════
+   GEOLOCATION BUTTON
+   ════════════════════════════════════════════════════════════ */
+function requestGeo(e, source){
+  if(e) e.preventDefault();
+  const btn = e.currentTarget;
+  if (!navigator.geolocation){ alert('Геолокация не поддерживается вашим браузером'); return; }
+
+  btn.classList.add('locating');
+
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      btn.classList.remove('locating');
+      state.lat = pos.coords.latitude;
+      state.lng = pos.coords.longitude;
+      state.address = 'Моё местоположение';
+      mainSearch.value = state.address;
+      inlineSearch.value = state.address;
+
+      if (source === 'main'){
+        landingEl.classList.add('dismissed');
+        setTimeout(()=>{
+          landingEl.style.display = 'none';
+          resultsEl.classList.add('on');
+          aiFab.style.display = 'flex';
+          window.scrollTo({top:0});
+          fetchAndRender();
+        }, 380);
+      } else {
+        fetchAndRender();
+      }
+    },
+    err => {
+      btn.classList.remove('locating');
+      const msg = err.code===1 ? 'Геолокация отключена в настройках браузера' : 'Не удалось определить местоположение';
+      alert(msg);
+    },
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+  );
+}
+
+/* ════════════════════════════════════════════════════════════
    FETCH → store raw data, then apply filters/sort & render
    ════════════════════════════════════════════════════════════ */
 async function fetchAndRender(){

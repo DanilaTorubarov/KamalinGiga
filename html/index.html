@@ -43,7 +43,9 @@
           <path d="M12 22s-7-7.58-7-13a7 7 0 1 1 14 0c0 5.42-7 13-7 13z"/><circle cx="12" cy="9" r="2.5"/>
         </svg>
         <input id="mainSearch" type="text" placeholder="Откуда ищем? Например, Большая Никитская, 14" autocomplete="off" enterkeyhint="search">
-        <span class="kbd">↵&nbsp;Enter</span>
+        <button class="geo-btn" onclick="requestGeo(event, 'main')" title="Использовать мою геолокацию" aria-label="Геолокация">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/><circle cx="12" cy="12" r="10"/></svg>
+        </button>
         <div class="ac-drop" id="acMain"></div>
       </div>
 
@@ -62,6 +64,9 @@
               <circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>
             </svg>
             <input id="inlineSearch" type="text" placeholder="Уточнить запрос">
+            <button class="geo-btn geo-btn-sm" onclick="requestGeo(event, 'inline')" title="Использовать мою геолокацию" aria-label="Геолокация">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/><circle cx="12" cy="12" r="10"/></svg>
+            </button>
             <div class="ac-drop" id="acInline"></div>
           </div>
         </div>
