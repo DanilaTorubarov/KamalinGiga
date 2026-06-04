@@ -27,8 +27,14 @@ async def api_places(lat: float | None = None,
 
     _validate_coords(lat, lng)
 
-    keyword = CATEGORY_QUERY.get(category, "food")
-    raw_items = await google_nearby_search(lat, lng, keyword, radius=radius)
+    query = CATEGORY_QUERY.get(category, {"type": "restaurant", "keyword": None, "max_pages": 1})
+    raw_items = await google_nearby_search(
+        lat, lng,
+        keyword=query["keyword"],
+        place_type=query["type"],
+        radius=radius,
+        max_pages=query.get("max_pages", 1),
+    )
 
     places = [p for item in raw_items if (p := convert_google_place(item, lat, lng))]
     places.sort(key=lambda x: x["distance_m"])

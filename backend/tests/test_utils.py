@@ -11,7 +11,40 @@ def test_category_query_keys():
 
 def test_category_query_values_non_empty():
     for key, value in CATEGORY_QUERY.items():
-        assert isinstance(value, str) and len(value) > 0
+        assert isinstance(value, dict)
+        assert "type" in value
+        assert "keyword" in value
+        assert "max_pages" in value
+        assert value["max_pages"] >= 1
+
+
+def test_category_all_no_restrictions():
+    q = CATEGORY_QUERY["all"]
+    assert q["type"] == "restaurant"
+    assert q["keyword"] is None
+    assert q["max_pages"] == 2
+
+
+def test_category_rest_uses_type():
+    q = CATEGORY_QUERY["rest"]
+    assert q["type"] == "restaurant"
+    assert q["max_pages"] == 2
+
+
+def test_category_cafe_uses_type():
+    q = CATEGORY_QUERY["cafe"]
+    assert q["type"] == "cafe"
+
+
+def test_category_cult_uses_keyword():
+    q = CATEGORY_QUERY["cult"]
+    assert q["keyword"] == "museum theater gallery"
+    assert q["type"] is None
+
+
+def test_category_max_pages_default():
+    for key in ("cult", "cinema", "fun", "park"):
+        assert CATEGORY_QUERY[key]["max_pages"] == 1
 
 
 def test_price_label_levels():
