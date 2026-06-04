@@ -20,16 +20,16 @@ jobs:
         run: |
           printf '%s' "${ENV_DATA}" > .env
 
-      - name: Build and start containers
-        run: docker compose -f docker-compose.yml up -d --build
+      - name: Build image
+        run: docker compose -f docker-compose.yml build backend
 
-      # --- ИСПРАВЛЕНИЕ: Добавлен флаг -T для работы в CI ---
+      # --- run создаёт отдельный контейнер для тестов (uvicorn не запускается) ---
       - name: Run tests
-        run: docker compose -f docker-compose.yml exec -T backend pytest -v
+        run: docker compose -f docker-compose.yml run -T --rm backend pytest -v
 
-      - name: Stop containers
+      - name: Cleanup
         if: always()
-        run: docker compose -f docker-compose.yml down
+        run: docker compose -f docker-compose.yml down --remove-orphans
 
   deploy:
     runs-on: ubuntu-latest
