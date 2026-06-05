@@ -223,6 +223,7 @@ __marimo__/
 
 # QWEN
 QWEN.md
+/.qwen/
 .qwen/
 
 # SSL / Let's Encrypt (сертификаты — только на сервере)
