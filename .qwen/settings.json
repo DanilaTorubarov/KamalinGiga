@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Bash(pip install *)",
-      "Bash(node *)"
+      "Bash(node *)",
+      "Bash(copy *)",
+      "Bash(del *)"
     ]
   },
   "$version": 4
